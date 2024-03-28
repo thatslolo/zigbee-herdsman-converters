@@ -116,7 +116,7 @@ const definitions: Definition[] = [
         model: 'ZNXDD01LM',
         vendor: 'Aqara',
         description: 'Ceiling light L1-350',
-        extend: [lumiLight({colorTemp: true}), lumiZigbeeOTA()],
+        extend: [lumiLight({colorTemp: true, powerOutageMemory: 'switch'}), lumiZigbeeOTA()],
     },
     {
         zigbeeModel: ['lumi.light.cwac02', 'lumi.light.acn014'],
@@ -126,7 +126,7 @@ const definitions: Definition[] = [
         whiteLabel: [{vendor: 'Aqara', model: 'LEDLBT1-L01'}],
         extend: [
             lumiZigbeeOTA(),
-            lumiLight({colorTemp: true}),
+            lumiLight({colorTemp: true, powerOutageMemory: 'switch'}),
             forceDeviceType({type: 'Router'}),
             forcePowerSource({powerSource: 'Mains (single phase)'}),
         ],
@@ -137,7 +137,7 @@ const definitions: Definition[] = [
         vendor: 'Aqara',
         description: 'Opple MX960',
         meta: {turnsOffAtBrightness1: true},
-        extend: [lumiLight({colorTemp: true}), lumiZigbeeOTA()],
+        extend: [lumiLight({colorTemp: true, powerOutageMemory: 'switch'}), lumiZigbeeOTA()],
     },
     {
         zigbeeModel: ['lumi.light.cwopcn02'],
@@ -145,7 +145,7 @@ const definitions: Definition[] = [
         vendor: 'Aqara',
         description: 'Opple MX650',
         meta: {turnsOffAtBrightness1: true},
-        extend: [lumiZigbeeOTA(), lumiLight({colorTemp: true})],
+        extend: [lumiZigbeeOTA(), lumiLight({colorTemp: true, powerOutageMemory: 'switch'})],
     },
     {
         zigbeeModel: ['lumi.light.cwopcn03'],
@@ -153,21 +153,21 @@ const definitions: Definition[] = [
         vendor: 'Aqara',
         description: 'Opple MX480',
         meta: {turnsOffAtBrightness1: true},
-        extend: [lumiLight({colorTemp: true}), lumiZigbeeOTA()],
+        extend: [lumiLight({colorTemp: true, powerOutageMemory: 'switch'}), lumiZigbeeOTA()],
     },
     {
         zigbeeModel: ['lumi.light.cwjwcn01'],
         model: 'JWSP001A',
         vendor: 'Aqara',
         description: 'Jiawen LED Driver & Dimmer',
-        extend: [lumiLight({colorTemp: true})],
+        extend: [lumiLight({colorTemp: true, powerOutageMemory: 'switch'})],
     },
     {
         zigbeeModel: ['lumi.light.cwjwcn02'],
         model: 'JWDL001A',
         vendor: 'Aqara',
         description: 'Embedded spot led light',
-        extend: [lumiLight({colorTemp: true})],
+        extend: [lumiLight({colorTemp: true, powerOutageMemory: 'switch'})],
     },
     {
         zigbeeModel: ['lumi.sensor_switch'],
@@ -1202,7 +1202,7 @@ const definitions: Definition[] = [
         vendor: 'Aqara',
         description: 'Temperature and humidity sensor T1',
         whiteLabel: [{vendor: 'Aqara', model: 'TH-S02D'}],
-        fromZigbee: [lumi.fromZigbee.lumi_specific, fz.temperature, fz.humidity, fz.pressure, fz.battery],
+        fromZigbee: [lumi.fromZigbee.lumi_specific, fz.temperature, fz.humidity, lumi.fromZigbee.lumi_pressure, fz.battery],
         toZigbee: [],
         exposes: [e.temperature(), e.humidity(), e.pressure(), e.device_temperature(), e.battery(), e.battery_voltage(),
             e.power_outage_count(false)],
@@ -1846,17 +1846,23 @@ const definitions: Definition[] = [
         model: 'ZNCLDJ14LM',
         vendor: 'Aqara',
         description: 'Curtain controller C2',
-        fromZigbee: [lumi.fromZigbee.lumi_basic, lumi.fromZigbee.lumi_curtain_position,
-            lumi.fromZigbee.lumi_curtain_position_tilt, lumi.fromZigbee.lumi_curtain_status],
-        toZigbee: [lumi.toZigbee.lumi_curtain_position_state, lumi.toZigbee.lumi_curtain_options],
-        onEvent: async (type, data, device) => {
-            // The position (genAnalogOutput.presentValue) reported via an attribute contains an invalid value
-            // however when reading it will provide the correct value.
-            if (data.type === 'attributeReport' && data.cluster === 'genAnalogOutput') {
-                await device.endpoints[0].read('genAnalogOutput', ['presentValue']);
-            }
-        },
+        fromZigbee: [
+            lumi.fromZigbee.lumi_basic,
+            lumi.fromZigbee.lumi_curtain_position,
+            lumi.fromZigbee.lumi_curtain_status,
+            lumi.fromZigbee.lumi_curtain_options,
+        ],
+        toZigbee: [
+            lumi.toZigbee.lumi_curtain_position_state,
+            lumi.toZigbee.lumi_curtain_hand_open,
+            lumi.toZigbee.lumi_curtain_reverse,
+            lumi.toZigbee.lumi_curtain_limits_calibration_ZNCLDJ14LM,
+        ],
         exposes: [e.cover_position().setAccess('state', ea.ALL),
+            e.binary('reverse_direction', ea.ALL, true, false)
+                .withDescription('Whether the curtain direction is inverted'),
+            e.binary('hand_open', ea.ALL, true, false)
+                .withDescription('Pulling curtains by hand starts the motor'),
             e.binary('running', ea.STATE, true, false)
                 .withDescription('Whether the motor is moving or not'),
             e.enum('motor_state', ea.STATE, ['closing', 'opening', 'stop'])
@@ -2216,21 +2222,21 @@ const definitions: Definition[] = [
         model: 'SSWQD02LM',
         vendor: 'Aqara',
         description: 'Smart dimmer controller T1 Pro',
-        extend: [lumiZigbeeOTA(), lumiLight({colorTemp: true})],
+        extend: [lumiZigbeeOTA(), lumiLight({colorTemp: true, powerOutageMemory: 'switch'})],
     },
     {
         zigbeeModel: ['lumi.dimmer.acn004'],
         model: 'ZNDDQDQ12LM',
         vendor: 'Aqara',
         description: 'T1 light strip controller',
-        extend: [lumiZigbeeOTA(), lumiLight({colorTemp: true})],
+        extend: [lumiZigbeeOTA(), lumiLight({colorTemp: true, powerOutageMemory: 'switch'})],
     },
     {
         zigbeeModel: ['lumi.light.acn026', 'lumi.light.acn024'],
         model: 'SSWQD03LM',
         vendor: 'Aqara',
         description: 'Spotlight T2',
-        extend: [lumiZigbeeOTA(), lumiLight({colorTemp: true})],
+        extend: [lumiZigbeeOTA(), lumiLight({colorTemp: true, powerOutageMemory: 'switch'})],
     },
     {
         zigbeeModel: ['lumi.switch.n0agl1'],
@@ -3239,6 +3245,30 @@ const definitions: Definition[] = [
                 access: 'ALL',
                 zigbeeCommandOptions: {manufacturerCode},
             }),
+        ],
+    },
+    {
+        zigbeeModel: ['lumi.light.acn031'],
+        model: 'HCXDD12LM',
+        vendor: 'Aqara',
+        description: 'Ceiling light T1',
+        extend: [
+            deviceEndpoints({endpoints: {'white': 1, 'rgb': 2}}),
+            lumiLight({colorTemp: true, powerOutageMemory: 'light', endpointNames: ['white']}),
+            lumiLight({colorTemp: true, deviceTemperature: false, powerOutageCount: false, color: {modes: ['xy', 'hs']}, endpointNames: ['rgb']}),
+            lumiZigbeeOTA(),
+        ],
+    },
+    {
+        zigbeeModel: ['lumi.light.acn032'],
+        model: 'CL-L02D',
+        vendor: 'Aqara',
+        description: 'Ceiling light T1M',
+        extend: [
+            deviceEndpoints({endpoints: {'white': 1, 'rgb': 2}}),
+            lumiLight({colorTemp: true, powerOutageMemory: 'light', endpointNames: ['white']}),
+            lumiLight({colorTemp: true, deviceTemperature: false, powerOutageCount: false, color: {modes: ['xy', 'hs']}, endpointNames: ['rgb']}),
+            lumiZigbeeOTA(),
         ],
     },
 ];

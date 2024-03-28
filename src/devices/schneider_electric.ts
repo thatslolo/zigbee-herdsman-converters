@@ -1,3 +1,4 @@
+import {Zcl} from 'zigbee-herdsman';
 import {Definition, Fz, Tz, KeyValue} from '../lib/types';
 import * as exposes from '../lib/exposes';
 import fz from '../converters/fromZigbee';
@@ -111,7 +112,7 @@ const tzLocal = {
     lift_duration: {
         key: ['lift_duration'],
         convertSet: async (entity, key, value, meta) => {
-            await entity.write(0x0102, {0xe000: {value, type: 0x21}}, {manufacturerCode: 0x105e});
+            await entity.write(0x0102, {0xe000: {value, type: 0x21}}, {manufacturerCode: Zcl.ManufacturerCode.SCHNEIDER_ELECTRIC});
             return {state: {lift_duration: value}};
         },
     } satisfies Tz.Converter,
@@ -354,7 +355,7 @@ const definitions: Definition[] = [
         vendor: 'Schneider Electric',
         description: 'Micro module dimmer',
         ota: ota.zigbeeOTA,
-        extend: [light({configureReporting: true})],
+        extend: [light({configureReporting: true, levelConfig: {}})],
         fromZigbee: [fz.wiser_lighting_ballast_configuration],
         toZigbee: [tz.ballast_config, tz.wiser_dimmer_mode],
         exposes: [
@@ -697,6 +698,27 @@ const definitions: Definition[] = [
         },
     },
     {
+        zigbeeModel: ['2GANG/DIMMER/2'],
+        model: 'MEG5126-0300/MEG5172-0000',
+        vendor: 'Schneider Electric',
+        description: 'Merten MEG5172 PlusLink Dimmer insert with Merten Wiser System M Push Button (2fold)',
+        fromZigbee: [fz.wiser_lighting_ballast_configuration],
+        toZigbee: [tz.ballast_config, tz.wiser_dimmer_mode],
+        exposes: [
+            e.numeric('ballast_minimum_level', ea.ALL).withValueMin(1).withValueMax(254)
+                .withDescription('Specifies the minimum light output of the ballast'),
+            e.numeric('ballast_maximum_level', ea.ALL).withValueMin(1).withValueMax(254)
+                .withDescription('Specifies the maximum light output of the ballast'),
+            e.enum('dimmer_mode', ea.ALL, ['auto', 'rc', 'rl', 'rl_led'])
+                .withDescription('Sets dimming mode to autodetect or fixed RC/RL/RL_LED mode (max load is reduced in RL_LED)'),
+        ],
+        extend: [
+            deviceEndpoints({endpoints: {'left': 4, 'right': 3, 'left_btn': 22, 'right_btn': 21}}),
+            light({endpointNames: ['left', 'right'], configureReporting: true}),
+            switchActions('left_btn'), switchActions('right_btn'), indicatorMode('left_btn'),
+        ],
+    },
+    {
         zigbeeModel: ['1GANG/SWITCH/1'],
         model: 'MEG5161-0000',
         vendor: 'Schneider Electric',
@@ -737,7 +759,7 @@ const definitions: Definition[] = [
             return {'l1': 3, 's1': 21, 's2': 22, 's3': 23, 's4': 24};
         },
         meta: {multiEndpoint: true},
-        extend: [light({endpointNames: ['l1'], configureReporting: true})],
+        extend: [light({endpointNames: ['l1'], configureReporting: true, levelConfig: {}})],
         exposes: [
             e.numeric('ballast_minimum_level', ea.ALL).withValueMin(1).withValueMax(254)
                 .withDescription('Specifies the minimum light output of the ballast')

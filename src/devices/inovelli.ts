@@ -93,16 +93,19 @@ interface BreezeModeValues {
 
 // Converts brightness level to a fan mode
 const intToFanMode = (value: number) => {
-    let selectedMode = 'Low';
-
-    Object.values(fanModes).forEach((mode) => {
-        if (value >= mode) {
-            selectedMode = Object.keys(fanModes).find(
-                (key) => fanModes[key] === mode,
-            ) || 'Low';
-        }
-    });
-
+    let selectedMode = 'low';
+    if (value >= fanModes.low) {
+        selectedMode = 'low';
+    }
+    if (value >= fanModes.medium) {
+        selectedMode = 'medium';
+    }
+    if (value >= fanModes.high) {
+        selectedMode = 'high';
+    }
+    if (value == 4) {
+        selectedMode = 'smart';
+    }
     return selectedMode;
 };
 
@@ -364,23 +367,6 @@ const COMMON_ATTRIBUTES: {[s: string]: Attribute} = {
         max: 3,
         description: 'Set the switch configuration.',
     },
-    quickStartFan: {
-        ID: 23,
-        dataType: UINT8,
-        min: 0,
-        max: 60,
-        description:
-        'Duration of full power output while fan tranisitions from Off to On. In 60th of second. 0 = disable, 1 = 1/60s, 60 = 1s',
-    },
-    higherOutputInNonNeutral: {
-        ID: 25,
-        dataType: BOOLEAN,
-        displayType: 'enum',
-        values: {'Disabled (default)': 0, 'Enabled': 1},
-        min: 0,
-        max: 1,
-        description: 'Increase level in non-neutral mode',
-    },
     internalTemperature: {
         ID: 32,
         dataType: UINT8,
@@ -398,22 +384,6 @@ const COMMON_ATTRIBUTES: {[s: string]: Attribute} = {
         max: 1,
         readOnly: true,
         description: 'Indicates if the internal chipset is currently in an overheated state.',
-    },
-    quickStartLightTime: {
-        ID: 34,
-        dataType: UINT8,
-        min: 0,
-        max: 60,
-        description:
-        'Duration of full power output while lamp tranisitions from Off to On. In 60th of second. 0 = disable, 1 = 1/60s, 60 = 1s',
-    },
-    quickStartLightLevel: {
-        ID: 35,
-        dataType: UINT8,
-        min: 1,
-        max: 254,
-        description:
-        'Level of power output during Quick Start Light time (P34).',
     },
     buttonDelay: {
         ID: 50,
@@ -469,15 +439,15 @@ const COMMON_ATTRIBUTES: {[s: string]: Attribute} = {
         ID: 55,
         dataType: UINT8,
         min: 2,
-        max: 254,
-        description: 'Set this level on double-tap UP (if enabled by P53).',
+        max: 255,
+        description: 'Set this level on double-tap UP (if enabled by P53). 255 = send ON command.',
     },
     brightnessLevelForDoubleTapDown: {
         ID: 56,
         dataType: UINT8,
         min: 0,
-        max: 254,
-        description: 'Set this level on double-tap DOWN (if enabled by P54).',
+        max: 255,
+        description: 'Set this level on double-tap DOWN (if enabled by P54). 255 = send OFF command.',
     },
     ledColorWhenOn: {
         ID: 95,
@@ -528,6 +498,68 @@ const COMMON_ATTRIBUTES: {[s: string]: Attribute} = {
         min: 0,
         max: 100,
         description: 'Set the intensity of the LED Indicator when the load is off.',
+    },
+    singleTapBehavior: {
+        ID: 120,
+        dataType: UINT8,
+        displayType: 'enum',
+        values: {'Old Behavior': 0, 'New Behavior': 1, 'Down Always Off': 2},
+        description: 'Behavior of single tapping the on or off button. Old behavior turns the switch on or off. ' +
+            'New behavior cycles through the levels set by P131-133. Down Always Off is like the new behavior but ' +
+            'down always turns the switch off instead of going to next lower speed.',
+    },
+    fanTimerMode: {
+        ID: 121,
+        dataType: BOOLEAN,
+        displayType: 'enum',
+        values: {'Disabled': 0, 'Enabled': 1},
+        description: 'Enable or disable advanced timer mode to have the switch act like a bathroom fan timer',
+    },
+    fanControlMode: {
+        ID: 130,
+        dataType: UINT8,
+        displayType: 'enum',
+        values: {'Disabled': 0, 'Multi Tap': 1, 'Cycle': 2},
+        description: 'Which mode to use when binding EP3 to a fan module.',
+    },
+    lowLevelForFanControlMode: {
+        ID: 131,
+        dataType: UINT8,
+        min: 2,
+        max: 254,
+        description: 'Level to send to device bound to EP3 when set to low.',
+    },
+    mediumLevelForFanControlMode: {
+        ID: 132,
+        dataType: UINT8,
+        min: 2,
+        max: 254,
+        description: 'Level to send to device bound to EP3 when set to medium.',
+    },
+    highLevelForFanControlMode: {
+        ID: 133,
+        dataType: UINT8,
+        min: 2,
+        max: 254,
+        description: 'Level to send to device bound to EP3 when set to high.',
+    },
+    ledColorForFanControlMode: {
+        ID: 134,
+        dataType: UINT8,
+        min: 0,
+        max: 255,
+        values: {
+            Red: 0,
+            Orange: 21,
+            Yellow: 42,
+            Green: 85,
+            Cyan: 127,
+            Blue: 170,
+            Violet: 212,
+            Pink: 234,
+            White: 255,
+        },
+        description: 'LED color used to display fan control mode.',
     },
     auxSwitchUniqueScenes: {
         ID: 123,
@@ -817,7 +849,14 @@ const COMMON_ATTRIBUTES: {[s: string]: Attribute} = {
         values: {'Enabled (Default)': 0, 'Disabled': 1},
         displayType: 'enum',
     },
-
+    fanLedLevelType: {
+        ID: 263,
+        dataType: UINT8,
+        min: 0,
+        max: 10,
+        values: {'Limitless (like VZM31)': 0, 'Adaptive LED': 10},
+        description: 'Level display of the LED Strip',
+    },
 };
 
 const VZM31_ATTRIBUTES: {[s: string]: Attribute} = {
@@ -846,6 +885,29 @@ const VZM31_ATTRIBUTES: {[s: string]: Attribute} = {
         description:
       'Energy reports Energy level change which will result in sending a new energy report.' +
       '0 = disabled, 1-32767 = 0.01kWh-327.67kWh. Default setting: 10 (0.1 kWh)',
+    },
+    quickStartTime: {
+        ID: 23,
+        dataType: UINT8,
+        min: 0,
+        max: 60,
+        description: 'Duration of full power output while lamp tranisitions from Off to On. In 60th of second. 0 = disable, 1 = 1/60s, 60 = 1s',
+    },
+    quickStartLevel: {
+        ID: 24,
+        dataType: UINT8,
+        min: 1,
+        max: 254,
+        description: 'Level of power output during Quick Start Light time (P23).',
+    },
+    higherOutputInNonNeutral: {
+        ID: 25,
+        dataType: BOOLEAN,
+        displayType: 'enum',
+        values: {'Disabled (default)': 0, 'Enabled': 1},
+        min: 0,
+        max: 1,
+        description: 'Increase level in non-neutral mode',
     },
     ledBarScaling: {
         ID: 100,
@@ -890,6 +952,13 @@ const VZM35_ATTRIBUTES : {[s: string]: Attribute} = {
         description: 'Use this mode to synchronize and control other fan switches or controllers.',
         values: {'Disabled': 0, 'Remote Control Mode': 1},
     },
+    quickStartTime: {
+        ID: 23,
+        dataType: UINT8,
+        min: 0,
+        max: 60,
+        description: 'Duration of full power output while fan tranisitions from Off to On. In 60th of second. 0 = disable, 1 = 1/60s, 60 = 1s',
+    },
     nonNeutralAuxMediumGear: {
         ID: 30,
         dataType: UINT8,
@@ -903,81 +972,6 @@ const VZM35_ATTRIBUTES : {[s: string]: Attribute} = {
         min: 42,
         max: 135,
         description: 'Identification value in Non-nuetral, low gear, aux switch',
-    },
-    fanLedLevelType: {
-        ID: 263,
-        dataType: UINT8,
-        min: 0,
-        max: 10,
-        values: {'Limitless (like VZM31)': 0, 'Adaptive LED': 10},
-        description: 'Level display of the LED Strip',
-    },
-    singleTapBehavior: {
-        ID: 120,
-        dataType: UINT8,
-        displayType: 'enum',
-        values: {'Old Behavior': 0, 'New Behavior': 1},
-        description: 'Behavior of single tapping the on or off button. Old behavior turns the switch on or off. ' +
-        'New behavior cycles through the levels set by P131-133.',
-    },
-    fanTimerMode: {
-        ID: 121,
-        dataType: UINT8,
-        displayType: 'enum',
-        values: {'Disabled': 0, 'Enabled': 1},
-        description:
-        'When enabled, then 1x tap up on the paddle turns the fan on, ' +
-        '2x tap up sets a 5 minute timer, 3x tap up sets a 10 minute timer, ' +
-        '4x tap up sets a 15 minute timer, 5x tap up sets a 30 minute timer and ' +
-        'a tap down 1x turns the fan off and the timer is cancelled). ' +
-        'The LED Bar will show how much time is left while active. ' +
-        'By default this feature is set to disabled',
-    },
-    fanControlMode: {
-        ID: 130,
-        dataType: UINT8,
-        displayType: 'enum',
-        values: {'Disabled': 0, 'Multi Tap': 1, 'Cycle': 2},
-        description: 'Which mode to use when binding EP3 to a fan module.',
-    },
-    lowLevelForFanControlMode: {
-        ID: 131,
-        dataType: UINT8,
-        min: 2,
-        max: 254,
-        description: 'Level to send to device bound to EP3 when set to low.',
-    },
-    mediumLevelForFanControlMode: {
-        ID: 132,
-        dataType: UINT8,
-        min: 2,
-        max: 254,
-        description: 'Level to send to device bound to EP3 when set to medium.',
-    },
-    highLevelForFanControlMode: {
-        ID: 133,
-        dataType: UINT8,
-        min: 2,
-        max: 254,
-        description: 'Level to send to device bound to EP3 when set to high.',
-    },
-    ledColorForFanControlMode: {
-        ID: 134,
-        dataType: UINT8,
-        min: 0,
-        max: 255,
-        values: {
-            Red: 0,
-            Orange: 21,
-            Yellow: 42,
-            Green: 85,
-            Cyan: 127,
-            Blue: 170,
-            Violet: 212,
-            Pink: 234,
-            White: 255,
-        },
-        description: 'LED color used to display fan control mode.',
     },
 };
 
@@ -1005,9 +999,29 @@ const VZM36_ATTRIBUTES : {[s: string]: Attribute} = {
         description:
             'The state the light should return to when power is restored after power failure. 0 = off, 1-254 = level, 255 = previous.',
     },
-    higherOutputInNonNeutral_1: {...COMMON_ATTRIBUTES.higherOutputInNonNeutral},
-    quickStartLightTime_1: {...COMMON_ATTRIBUTES.quickStartLightTime},
-    quickStartLightLevel_1: {...COMMON_ATTRIBUTES.quickStartLightLevel},
+    higherOutputInNonNeutral_1: {
+        ID: 25,
+        dataType: BOOLEAN,
+        displayType: 'enum',
+        values: {'Disabled (default)': 0, 'Enabled': 1},
+        min: 0,
+        max: 1,
+        description: 'Increase level in non-neutral mode for light.',
+    },
+    quickStartTime_1: {
+        ID: 23,
+        dataType: UINT8,
+        min: 0,
+        max: 60,
+        description: 'Duration of full power output while lamp tranisitions from Off to On. In 60th of second. 0 = disable, 1 = 1/60s, 60 = 1s',
+    },
+    quickStartLevel_1: {
+        ID: 24,
+        dataType: UINT8,
+        min: 1,
+        max: 254,
+        description: 'Level of power output during Quick Start Light time (P23).',
+    },
     smartBulbMode_1: {...COMMON_ATTRIBUTES.smartBulbMode},
     ledColorWhenOn_1: {...COMMON_ATTRIBUTES.ledColorWhenOn},
     ledIntensityWhenOn_1: {...COMMON_ATTRIBUTES.ledIntensityWhenOn},
@@ -1067,8 +1081,14 @@ const VZM36_ATTRIBUTES : {[s: string]: Attribute} = {
         description:
         'The state the fan should return to when power is restored after power failure. 0 = off, 1-254 = level, 255 = previous.',
     },
+    quickStartTime_2: {
+        ID: 23,
+        dataType: UINT8,
+        min: 0,
+        max: 60,
+        description: 'Duration of full power output while fan tranisitions from Off to On. In 60th of second. 0 = disable, 1 = 1/60s, 60 = 1s',
+    },
     // power type readonly
-    quickStartFan_2: {...COMMON_ATTRIBUTES.quickStartFan},
     // internal temp readonly
     // overheat readonly
     smartBulbMode_2: {

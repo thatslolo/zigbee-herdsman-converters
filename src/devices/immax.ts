@@ -16,8 +16,8 @@ const definitions: Definition[] = [
         model: '07752L',
         description: 'NEO smart internal double socket',
         vendor: 'Immax',
-        extend: tuya.extend.switch({
-            electricalMeasurements: true, powerOutageMemory: true, indicatorMode: true, childLock: true, endpoints: ['l1', 'l2']}),
+        extend: [tuya.modernExtend.tuyaOnOff({
+            electricalMeasurements: true, powerOutageMemory: true, indicatorMode: true, childLock: true, endpoints: ['l1', 'l2']})],
         configure: async (device, coordinatorEndpoint, logger) => {
             await tuya.configureMagicPacket(device, coordinatorEndpoint, logger);
             const endpoint = device.getEndpoint(1);
@@ -226,6 +226,16 @@ const definitions: Definition[] = [
                 [29, 'action', tuya.valueConverter.static('sos')],
             ],
         },
+    },
+    {
+        fingerprint: [{modelID: 'TS004F', manufacturerName: '_TZ3000_krwtzhfd'}],
+        model: '07767L',
+        vendor: 'Immax',
+        description: 'NEO Smart outdoor button',
+        exposes: [e.battery(), e.action(['single', 'double', 'hold'])],
+        fromZigbee: [fz.battery, fz.tuya_on_off_action],
+        toZigbee: [],
+        configure: tuya.configureMagicPacket,
     },
 ];
 
